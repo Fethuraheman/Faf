@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Journal</title>
+    <link href="https://fonts.googleapis.com/css?family=Droid+Serif" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Droid Serif', serif;
+            background: #FFE8E2;
+            color: #8FA5A5;
+            margin: 20px;
+        }
+        h3 { color: #6F8585; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header .left, .header .right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        select, button {
+            border-radius: 15px;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            background: #fff;
+            color: #8FA5A5;
+        }
+        button:hover { background: #f0f0f0; }
+        .quote-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 300px;
+            text-align: center;
+            position: relative;
+        }
+        .quote-box::before {
+            content: '“';
+            font-size: 40px;
+            color: #6F8585;
+            position: absolute;
+            top: -10px;
+            left: 10px;
+        }
+        .quote-box::after {
+            content: '”';
+            font-size: 40px;
+            color: #6F8585;
+            position: absolute;
+            bottom: -20px;
+            right: 10px;
+        }
+        .quote-box button {
+            font-size: 12px;
+            padding: 2px 5px;
+            margin-top: 5px;
+        }
+        .main-content {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .priority-matrix {
+            width: 30%;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            padding: 10px;
+            background: #fff;
+        }
+        .priority-matrix ul {
+            list-style: none;
+            padding: 0;
+        }
+        .priority-matrix li { margin-bottom: 15px; }
+        .priority-matrix details { cursor: pointer; }
+        .task-table-container {
+            width: 70%;
+            overflow-x: auto;
+        }
+        #task-table {
+            border-collapse: collapse;
+            width: 100%;
+            background: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        #task-table th, #task-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            min-width: 50px;
+        }
+        #task-table th { background: #f0f0f0; color: #6F8585; }
+        .completion-row { margin-top: 10px; display: flex; gap: 5px; }
+        .completion-row div { flex: 1; text-align: center; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 5px; }
+        .streak-card {
+            background: linear-gradient(#fff, #f0f0f0);
+            border-radius: 15px;
+            padding: 10px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-size: 18px;
+            color: #6F8585;
+        }
+        .dashboard {
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            margin-top: 20px;
+        }
+        canvas { border: 1px solid #ddd; border-radius: 15px; background: #fff; }
+        .dark { background: #2A1E1E; color: #D0CACA; }
+        .dark h3 { color: #AFAFAF; }
+        .dark #task-table th { background: #3A2E2E; color: #AFAFAF; }
+        .dark button { background: #3A2E2E; color: #D0CACA; border-color: #555; }
+        .dark select { background: #3A2E2E; color: #D0CACA; border-color: #555; }
+        .dark .priority-matrix, .dark #task-table, .dark canvas, .dark .quote-box { background: #3A2E2E; border-color: #555; }
+        .dark .streak-card { background: linear-gradient(#3A2E2E, #4A3E3E); color: #AFAFAF; }
+        .dark .mood-cell { background: #3A2E2E; border-color: #555; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="left">
+            <select id="month-select">
+                <option>August 2025</option>
+                <option>September 2025</option>
+                <option>October 2025</option>
+                <option>November 2025</option>
+                <option>December 2025</option>
+            </select> |
+            <div class="quote-box" id="quote-box">
+                <span id="quote-text">Quote of the Day</span>
+                <button id="edit-quote">Edit</button>
+            </div>
+        </div>
+        <div class="right">
+            <button id="night-mode">🌙</button> |
+            <span id="pomodoro">25:00</span>
+            <button id="pomo-start">Start</button>
+            <button id="pomo-stop">Stop</button>
+            <button id="pomo-reset">Reset</button> |
+            <button id="export">Export</button>
+            <button id="help">Help</button>
+        </div>
+    </div>
+
+    <!-- Main Content: Priority Matrix and Task Table -->
+    <div class="main-content">
+        <!-- Priority Matrix -->
+        <div class="priority-matrix">
+            <h3>🔥 Hot Zone</h3>
+            <input type="text" id="hot-input" placeholder="Add task (3-5 max)">
+            <button id="add-hot">Add</button>
+            <ul id="hot-list"></ul>
+            <h3>📅 Scheduled</h3>
+            <ol id="sched-list">
+                <li>Quran Memorization
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• New Page: Awaken for Subhi prayer, attend the mosque, and dedicate two hours to memorization.</li>
+                            <li>• Revising 3-5 Pages: Visit the mosque after Asr prayer, then conduct Muraja'ah until Maghrib.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Forex Trading Sessions
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• London Session: Execute trades during the London session from 2:00 AM to 5:00 AM NY time.</li>
+                            <li>• NY AM Session: Execute trades during the NY AM session from 8:00 AM to 12:00 PM NY time.</li>
+                            <li>• PM Session: Execute trades during the PM session from 1:00 PM to 5:00 PM NY time.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Forex Journaling
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Document your trades meticulously in your notebook.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Forex Course Viewing
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Watch one ICT course video before sleep, 3-5 days per week.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Forex Psychology Reading
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Read psychology PDF books 4-5 times per week.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Forex Backtesting
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Perform backtesting of your strategy every Saturday and Sunday.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Affiliate Pinning on Pinterest
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Create a prompt for the post in DeepSeek by copying the name from the Amazon app and pasting into Google Notes.</li>
+                            <li>• Develop a prompt for the photo in a new AI chat labeled "AI Photo."</li>
+                            <li>• Generate the image using Leonardo AI.</li>
+                            <li>• Edit the image in Hypic, adding texts and textures.</li>
+                            <li>• Create the pin on Pinterest with high SEO and tags.</li>
+                            <li>• Schedule the pin for the following day.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Affiliate Product Posting
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Collect created images from the gallery via Leonardo AI.</li>
+                            <li>• Download additional product photos from the Amazon app for the slider gallery.</li>
+                            <li>• Upload all images to the Wix app.</li>
+                            <li>• Copy and paste the title and description from the Notes app.</li>
+                            <li>• Verify all details and publish the product.</li>
+                            <li>• Access Amazon on desktop to add the affiliate link.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Affiliate Blog Writing
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Generate a blog post in DeepSeek.</li>
+                            <li>• Copy it to Notes.</li>
+                            <li>• Incorporate images downloaded from Leonardo AI.</li>
+                            <li>• Insert affiliate links from the Amazon app.</li>
+                            <li>• Schedule the post for the next three days.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Affiliate Applications
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Activate your Payoneer account for international transfers.</li>
+                            <li>• Apply to CJ Affiliates.</li>
+                            <li>• Apply to eBay Affiliate Programs.</li>
+                            <li>• Apply to additional relevant programs.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Daily Journaling
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Open your journal notebook every night before sleep to clear your mind of unnecessary thoughts.</li>
+                        </ul>
+                    </details>
+                </li>
+                <li>Islamic University Courses
+                    <details>
+                        <summary></summary>
+                        <ul>
+                            <li>• Access the Islamic University website on desktop.</li>
+                            <li>• Review enrolled courses.</li>
+                            <li>• Complete coursework during available free time.</li>
+                            <li>• Take exams and monitor results.</li>
+                            <li>• Finish courses and obtain certificates.</li>
+                        </ul>
+                    </details>
+                </li>
+            </ol>
+        </div>
+
+        <!-- 30-Day Main Task Table -->
+        <div class="task-table-container">
+            <table id="task-table">
+                <thead>
+                    <tr>
+                        <th>Task Name</th>
+                        <th>Countdown</th>
+                        <th>Frequency</th>
+                        <th>Time</th>
+                        <th>Day 1</th><th>Day 2</th><th>Day 3</th><th>Day 4</th><th>Day 5</th>
+                        <th>Day 6</th><th>Day 7</th><th>Day 8</th><th>Day 9</th><th>Day 10</th>
+                        <th>Day 11</th><th>Day 12</th><th>Day 13</th><th>Day 14</th><th>Day 15</th>
+                        <th>Day 16</th><th>Day 17</th><th>Day 18</th><th>Day 19</th><th>Day 20</th>
+                        <th>Day 21</th><th>Day 22</th><th>Day 23</th><th>Day 24</th><th>Day 25</th>
+                        <th>Day 26</th><th>Day 27</th><th>Day 28</th><th>Day 29</th><th>Day 30</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tr id="mood-row">
+                    <td colspan="4">Daily Mood Assessment</td>
+                </tr>
+                <tr id="focus-row">
+                    <td colspan="4">Daily Focus Rating</td>
+                </tr>
+                <tr id="result-row">
+                    <td colspan="4">Daily Performance Score</td>
+                </tr>
+                <tr id="countdown-row">
+                    <td colspan="4">Countdown to Next Day</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Streak Card -->
+    <div class="streak-card" id="streak-display">⚡ Current Streak: 0 Days</div>
+
+    <!-- Performance Dashboard -->
+    <div class="dashboard">
+        <h3>Performance Graph</h3>
+        <canvas id="performance-graph" width="800" height="400"></canvas>
+        <div id="energy-alert">⚠️ Energy Alert</div>
+    </div>
+
+    <!-- Sample Workflow -->
+    <div>
+        <h3>Sample Workflow</h3>
+        <ol>
+            <li><strong>Morning:</strong> Check 🔥 Hot Zone → Complete New Page (30 Min). Log mood: Rad 😎.</li>
+            <li><strong>Afternoon:</strong> Tackle London Session Trade → Mark checkbox.</li>
+            <li><strong>Evening:</strong> Review Energy Alert → Adjust schedules based on patterns.</li>
+        </ol>
+    </div>
+
+    <script>
+        const tasks = [
+            'New Page', 'Revising 3-5 Pages', 'London Session Trade', 'NY AM Session Trade', 'PM Session Trade',
+            'Journal Trades', 'New Course Video', 'Psychology Books', 'Backtesting',
+            'Pinning 3-5 Pins', 'Post Products on Website 5-7', 'Write Blogs', 'Apply for Affiliates',
+            'Journaling', 'Islamic University Courses'
+        ];
+        const moods = [
+            { label: 'Happy', emoji: '😊' }, { label: 'Grateful', emoji: '🙏' }, { label: 'Sad', emoji: '😔' }
+        ];
+
+        let taskData = Array(tasks.length).fill().map(() => Array(30).fill(false));
+        let moodData = Array(30).fill(0); // Index of selected mood, default 0
+        let focusData = Array(30).fill(3); // Default 3 stars
+        let frequencyData = Array(tasks.length).fill('Daily');
+        let timeData = Array(tasks.length).fill('30 Min');
+        let lastMarkTimes = Array(tasks.length).fill(0);
+        let hotTasks = [];
+        let selectedMonth = 'August 2025';
+        let quote = 'Quote of the Day';
+        let countdownTimers = Array(30).fill(0); // Timestamps when focus rated
+        let countdownIntervals = Array(30).fill(null);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Month select
+            const monthSelect = document.getElementById('month-select');
+            monthSelect.value = selectedMonth;
+            monthSelect.addEventListener('change', (e) => {
+                selectedMonth = e.target.value;
+                updateData();
+            });
+
+            // Build task table
+            const tbody = document.querySelector('#task-table tbody');
+            tasks.forEach((task, index) => {
+                const tr = document.createElement('tr');
+                const nameTd = document.createElement('td');
+                nameTd.textContent = task;
+                tr.appendChild(nameTd);
+
+                const timerTd = document.createElement('td');
+                timerTd.id = `timer-${index}`;
+                tr.appendChild(timerTd);
+
+                const freqTd = document.createElement('td');
+                const freqSelect = document.createElement('select');
+                ['Daily', '2 Days/Week', '3 Days/Week', 'Twice/Month', 'Three Times/Month'].forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.text = opt;
+                    freqSelect.add(option);
+                });
+                freqSelect.value = frequencyData[index];
+                freqSelect.addEventListener('change', (e) => {
+                    frequencyData[index] = e.target.value;
+                    updateData();
+                });
+                freqTd.appendChild(freqSelect);
+                tr.appendChild(freqTd);
+
+                const timeTd = document.createElement('td');
+                const timeSelect = document.createElement('select');
+                ['30 Min', '1 Hour', '2 Hours', '3 Hours', '4 Hours', '5 Hours'].forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.text = opt;
+                    timeSelect.add(option);
+                });
+                timeSelect.value = timeData[index];
+                timeSelect.addEventListener('change', (e) => {
+                    timeData[index] = e.target.value;
+                    updateData();
+                });
+                timeTd.appendChild(timeSelect);
+                tr.appendChild(timeTd);
+
+                for (let d = 1; d <= 30; d++) {
+                    const td = document.createElement('td');
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.dataset.task = index;
+                    chk.dataset.day = d;
+                    chk.addEventListener('change', (e) => {
+                        taskData[index][d - 1] = e.target.checked;
+                        if (e.target.checked) {
+                            lastMarkTimes[index] = Date.now();
+                        }
+                        updateData();
+                    });
+                    td.appendChild(chk);
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            });
+
+            // Mood row
+            const moodRow = document.getElementById('mood-row');
+            for (let d = 1; d <= 30; d++) {
+                const td = document.createElement('td');
+                const select = document.createElement('select');
+                moods.forEach((md, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.text = `${md.label} ${md.emoji}`;
+                    select.add(opt);
+                });
+                select.value = moodData[d - 1];
+                select.addEventListener('change', (e) => {
+                    moodData[d - 1] = parseInt(e.target.value);
+                    updateData();
+                });
+                td.appendChild(select);
+                moodRow.appendChild(td);
+            }
+
+            // Focus row
+            const focusRow = document.getElementById('focus-row');
+            for (let d = 1; d <= 30; d++) {
+                const td = document.createElement('td');
+                const select = document.createElement('select');
+                for (let s = 1; s <= 5; s++) {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.text = '⭐'.repeat(s);
+                    select.add(opt);
+                }
+                select.value = focusData[d - 1];
+                select.addEventListener('change', (e) => {
+                    focusData[d - 1] = parseInt(e.target.value);
+                    const dayIndex = d - 1;
+                    countdownTimers[dayIndex] = Date.now() + 24 * 60 * 60 * 1000; // Start 24hr countdown
+                    if (countdownIntervals[dayIndex]) clearInterval(countdownIntervals[dayIndex]);
+                    countdownIntervals[dayIndex] = setInterval(() => updateCountdown(dayIndex), 1000);
+                    updateData();
+                });
+                td.appendChild(select);
+                focusRow.appendChild(td);
+            }
+
+            // Result row (auto performance score)
+            const resultRow = document.getElementById('result-row');
+            for (let d = 1; d <= 30; d++) {
+                const td = document.createElement('td');
+                td.id = `result-${d}`;
+                resultRow.appendChild(td);
+            }
+
+            // Countdown row
+            const countdownRow = document.getElementById('countdown-row');
+            for (let d = 1; d <= 30; d++) {
+                const td = document.createElement('td');
+                td.id = `countdown-${d}`;
+                countdownRow.appendChild(td);
+            }
+
+            // Hot zone add
+            document.getElementById('add-hot').addEventListener('click', () => {
+                const input = document.getElementById('hot-input');
+                if (input.value && hotTasks.length < 5) {
+                    hotTasks.push(input.value);
+                    input.value = '';
+                    updateHotList();
+                    updateData();
+                }
+            });
+
+            // Load data
+            loadData();
+
+            // Timer interval
+            setInterval(updateTimers, 1000);
+            countdownTimers.forEach((timer, i) => {
+                if (timer > Date.now()) {
+                    countdownIntervals[i] = setInterval(() => updateCountdown(i), 1000);
+                }
+            });
+
+            // Night mode
+            document.getElementById('night-mode').addEventListener('click', () => document.body.classList.toggle('dark'));
+
+            // Pomodoro (unchanged)
+            let timer = 25 * 60;
+            let interval;
+            const pomoDisplay = document.getElementById('pomodoro');
+            function updatePomo() {
+                const min = Math.floor(timer / 60);
+                const sec = timer % 60;
+                pomoDisplay.textContent = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+            }
+            updatePomo();
+            document.getElementById('pomo-start').addEventListener('click', () => {
+                if (!interval) interval = setInterval(() => { if (timer > 0) timer--; else clearInterval(interval); updatePomo(); }, 1000);
+            });
+            document.getElementById('pomo-stop').addEventListener('click', () => { clearInterval(interval); interval = null; });
+            document.getElementById('pomo-reset').addEventListener('click', () => { clearInterval(interval); interval = null; timer = 25 * 60; updatePomo(); });
+
+            // Export with options
+            document.getElementById('export').addEventListener('click', () => {
+                const format = prompt('Export format: json or pdf?');
+                if (format === 'json') {
+                    const data = { tasks: taskData, moods: moodData, focus: focusData, frequency: frequencyData, time: timeData, lastMarks: lastMarkTimes, hot: hotTasks, month: selectedMonth, quote: quote, countdowns: countdownTimers };
+                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'journal.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } else if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    doc.text('Journal Data', 10, 10);
+                    // Add more content as needed, e.g., table data
+                    let y = 20;
+                    tasks.forEach((task, i) => {
+                        doc.text(task, 10, y);
+                        y += 10;
+                        taskData[i].forEach((checked, d) => {
+                            if (checked) doc.text(`Day ${d+1}: Done`, 20, y), y += 5;
+                        });
+                    });
+                    doc.save('journal.pdf');
+                }
+            });
+
+            // Help
+            document.getElementById('help').addEventListener('click', () => alert('Help: Mark tasks with checkboxes. Select moods and focus. Add hot tasks. Export saves data in JSON or PDF.'));
+
+            // Quote edit
+            document.getElementById('edit-quote').addEventListener('click', () => {
+                const newQuote = prompt('Enter new quote:', quote);
+                if (newQuote) {
+                    quote = newQuote;
+                    document.getElementById('quote-text').textContent = quote;
+                    updateData();
+                }
+            });
+        });
+
+        function loadData() {
+            const saved = localStorage.getItem('journalData');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                taskData = parsed.tasks || taskData;
+                moodData = parsed.moods || moodData;
+                focusData = parsed.focus || focusData;
+                frequencyData = parsed.frequency || frequencyData;
+                timeData = parsed.time || timeData;
+                lastMarkTimes = parsed.lastMarks || lastMarkTimes;
+                hotTasks = parsed.hot || hotTasks;
+                selectedMonth = parsed.month || selectedMonth;
+                quote = parsed.quote || quote;
+                countdownTimers = parsed.countdowns || countdownTimers;
+                document.getElementById('month-select').value = selectedMonth;
+                document.getElementById('quote-text').textContent = quote;
+            }
+            // Set checkboxes, selects, etc.
+            document.querySelectorAll('#task-table input[type="checkbox"]').forEach(chk => {
+                chk.checked = taskData[chk.dataset.task][chk.dataset.day - 1];
+            });
+            document.querySelectorAll('#task-table select').forEach(sel => {
+                const rowIndex = sel.parentNode.parentNode.rowIndex - 1;
+                if (sel.parentNode.cellIndex === 2 && rowIndex < tasks.length) sel.value = frequencyData[rowIndex];
+                if (sel.parentNode.cellIndex === 3 && rowIndex < tasks.length) sel.value = timeData[rowIndex];
+            });
+            document.querySelectorAll('#focus-row select').forEach((sel, i) => sel.value = focusData[i]);
+            document.querySelectorAll('#mood-row select').forEach((sel, i) => sel.value = moodData[i]);
+            updateHotList();
+            updateDashboard();
+            updateTimers();
+        }
+
+        function updateData() {
+            localStorage.setItem('journalData', JSON.stringify({ tasks: taskData, moods: moodData, focus: focusData, frequency: frequencyData, time: timeData, lastMarks: lastMarkTimes, hot: hotTasks, month: selectedMonth, quote: quote, countdowns: countdownTimers }));
+            updateDashboard();
+        }
+
+        function updateHotList() {
+            const ul = document.getElementById('hot-list');
+            ul.innerHTML = '';
+            hotTasks.forEach((task, i) => {
+                const li = document.createElement('li');
+                li.textContent = task;
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener('click', () => {
+                    hotTasks.splice(i, 1);
+                    updateHotList();
+                    updateData();
+                });
+                li.appendChild(removeBtn);
+                ul.appendChild(li);
+            });
+        }
+
+        function updateTimers() {
+            lastMarkTimes.forEach((time, index) => {
+                const td = document.getElementById(`timer-${index}`);
+                const remaining = (time + 24 * 3600 * 1000 - Date.now()) / 1000;
+                if (remaining > 0) {
+                    const hrs = Math.floor(remaining / 3600);
+                    const mins = Math.floor((remaining % 3600) / 60);
+                    const secs = Math.floor(remaining % 60);
+                    td.textContent = `${hrs}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs} until next`;
+                } else {
+                    td.textContent = 'Ready';
+                }
+            });
+        }
+
+        function updateCountdown(dayIndex) {
+            const remaining = (countdownTimers[dayIndex] - Date.now()) / 1000;
+            const td = document.getElementById(`countdown-${dayIndex + 1}`);
+            if (remaining > 0) {
+                const hrs = Math.floor(remaining / 3600);
+                const mins = Math.floor((remaining % 3600) / 60);
+                const secs = Math.floor(remaining % 60);
+                td.textContent = `${hrs}h ${mins}m ${secs}s`;
+            } else {
+                td.textContent = 'Expired';
+                clearInterval(countdownIntervals[dayIndex]);
+            }
+        }
+
+        function updateDashboard() {
+            // Daily performance score
+            for (let d = 1; d <= 30; d++) {
+                let checked = 0;
+                taskData.forEach(row => { if (row[d - 1]) checked++; });
+                const score = Math.round((checked / tasks.length) * 10);
+                document.getElementById(`result-${d}`).textContent = `${score}/10`;
+            }
+
+            // Streak
+            let streak = 0;
+            for (let day = 29; day >= 0; day--) {
+                let checked = 0;
+                taskData.forEach(row => { if (row[day]) checked++; });
+                if (checked / tasks.length >= 0.7) streak++;
+                else break;
+            }
+            document.getElementById('streak-display').textContent = `⚡ Current Streak: ${streak} Days`;
+
+            // Energy Alert
+            let lowDays = [];
+            focusData.forEach((stars, i) => { if (stars < 3) lowDays.push(i + 1); });
+            let alertText = '';
+            if (lowDays.length > 3) {
+                alertText = `Alert: Low energy on Days ${lowDays.slice(0,3).join(', ')} (and more, average ${Math.round(focusData.reduce((a,b)=>a+b,0)/30)} stars). Consider rescheduling high-focus tasks?`;
+            }
+            document.getElementById('energy-alert').textContent = alertText || '';
+
+            // Line Graph
+            const ctx = document.getElementById('performance-graph').getContext('2d');
+            ctx.clearRect(0, 0, 800, 400);
+            const dailyCompletion = Array(30).fill(0).map((_, d) => {
+                let total = 0;
+                taskData.forEach(row => { if (row[d]) total++; });
+                return total / tasks.length;
+            });
+            ctx.beginPath();
+            ctx.moveTo(0, 400 - dailyCompletion[0] * 400);
+            for (let d = 1; d < 30; d++) {
+                ctx.lineTo(d * (800 / 29), 400 - dailyCompletion[d] * 400);
+            }
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            for (let g = 0; g < 6; g++) {
+                ctx.fillStyle = '#6F8585';
+                ctx.fillText(`Days ${(g*5)+1}-${Math.min((g+1)*5, 30)}`, g * 133 + 20, 390);
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>
